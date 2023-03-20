@@ -1,38 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>MyAnimeList Search</title>
-	<link rel="stylesheet" type="text/css" href="style.css">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Anime Finder</title>
+	<link rel="stylesheet" href="style.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
 	<header>
-		<div class="container">
-			<nav>
-				<div class="menu-icon">
-					<span class="icon"></span>
-					<span class="icon"></span>
-					<span class="icon"></span>
-				</div>
-				<ul class="menu">
-					<li><a href="#">Action</a></li>
-					<li><a href="#">Comedy</a></li>
-					<li><a href="#">Drama</a></li>
-					<li><a href="#">Fantasy</a></li>
-					<li><a href="#">Horror</a></li>
-				</ul>
-			</nav>
-			<div class="search-box">
-				<input type="text" placeholder="Search...">
-				<button>Search</button>
-			</div>
-		</div>
+		<h1>Anime Finder</h1>
+		<form id="search-form">
+			<input type="text" placeholder="Search anime...">
+			<button type="submit">Search</button>
+		</form>
 	</header>
-
-	<div class="container">
-		<div class="result"></div>
-	</div>
-
+	<main>
+		<ul id="anime-list"></ul>
+	</main>
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="app.js"></script>
 </body>

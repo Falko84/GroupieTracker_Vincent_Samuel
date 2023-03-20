@@ -4,80 +4,67 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"strings"
-	"text/template"
+	"net/url"
 )
 
-type Anime struct {
-	Title       string `json:"title"`
-	ImageURL    string `json:"image_url"`
-	Type        string `json:"type"`
-	Episodes    int    `json:"episodes"`
-	Score       string `json:"score"`
-	Description string `json:"synopsis"`
+type AnimeResult struct {
+	ImageURL string `json:"image_url"`
+	Title    string `json:"title"`
+	Synopsis string `json:"synopsis"`
 }
 
-// Fonction pour récupérer les données de l'API MyAnimeList
-func getAnimeData(search string) ([]Anime, error) {
-	// Remplacer "API_KEY" par votre propre clé API MyAnimeList
-	url := fmt.Sprintf("https://api.myanimelist.net/v2/anime?q=%s&limit=10", search)
-	req, err := http.NewRequest("GET", url, nil)
+type AnimeSearchResults struct {
+	Results []AnimeResult `json:"results"`
+}
+
+func main() {
+	http.HandleFunc("/search", animeSearchHandler)
+	http.ListenAndServe(":8080", nil)
+}
+
+func animeSearchHandler(w http.ResponseWriter, r *http.Request) {
+	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		return nil, err
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	// Remplacer "ACCESS_TOKEN" par votre propre jeton d'accès MyAnimeList
-	req.Header.Set("Authorization", "Bearer ACCESS_TOKEN")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
+	searchQuery := query.Get("q")
+	if searchQuery == "" {
+		http.Error(w, "Missing search query parameter", http.StatusBadRequest)
+		return
 	}
+
+	url := fmt.Sprintf("https://api.jikan.moe/v3/search/anime?q=%s&page=1", searchQuery)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	var result map[string][]Anime
-	err = json.Unmarshal(body, &result)
+	var searchResults AnimeSearchResults
+	err = json.Unmarshal(body, &searchResults)
 	if err != nil {
-		return nil, err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return result["data"], nil
-}
+	jsonData, err := json.Marshal(searchResults)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			search := r.FormValue("search")
-			search = strings.ReplaceAll(search, " ", "%20")
-			animeData, err := getAnimeData(search)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			t, err := template.ParseFiles("index.html")
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			err = t.Execute(w, animeData)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		} else {
-			http.ServeFile(w, r, "index.html")
-		}
-	})
-
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
 }
